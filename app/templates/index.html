@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lung Cancer Risk Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 700px;
+      color: #fff;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: #e94560;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: #aaa;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #e94560, #c0392b);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Form ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #ccc;
+      font-weight: 500;
+    }
+
+    select, input[type="number"], input[type="file"] {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="number"]:focus {
+      border-color: #e94560;
+    }
+
+    select option { background: #1a1a2e; color: #fff; }
+
+    input[type="number"] { -moz-appearance: textfield; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* ── File upload area ── */
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover { border-color: #e94560; }
+
+    .upload-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .upload-text {
+      color: #ccc;
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+    }
+
+    .upload-subtext { color: #777; font-size: 0.8rem; }
+
+    .upload-area input[type="file"] {
+      display: none;
+    }
+
+    .file-name {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #2ecc71;
+    }
+
+    /* ── Preview image ── */
+    #image-preview {
+      display: none;
+      width: 100%;
+      max-height: 250px;
+      object-fit: contain;
+      border-radius: 10px;
+      margin-top: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      margin-top: 24px;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #e94560, #c0392b);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:hover  { opacity: 0.9; }
+    .btn:active { transform: scale(0.98); }
+
+    /* ── Result cards ── */
+    .result-card {
+      margin-top: 28px;
+      padding: 24px;
+      border-radius: 14px;
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .result-card.high {
+      background: rgba(233, 69, 96, 0.15);
+      border: 1px solid rgba(233, 69, 96, 0.4);
+    }
+
+    .result-card.low {
+      background: rgba(46, 204, 113, 0.12);
+      border: 1px solid rgba(46, 204, 113, 0.35);
+    }
+
+    .result-card.medium {
+      background: rgba(243, 156, 18, 0.12);
+      border: 1px solid rgba(243, 156, 18, 0.35);
+    }
+
+    .result-label {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .result-card.high   .result-label { color: #e94560; }
+    .result-card.low    .result-label { color: #2ecc71; }
+    .result-card.medium .result-label { color: #f39c12; }
+
+    .result-prob { font-size: 1rem; color: #ccc; }
+
+    .result-note {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    /* ── Probability bars ── */
+    .prob-bars {
+      margin-top: 16px;
+      text-align: left;
+    }
+
+    .prob-row {
+      margin-bottom: 10px;
+    }
+
+    .prob-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+
+    .prob-bar-bg {
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      height: 8px;
+      width: 100%;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.6s ease;
+    }
+
+    .bar-malignant { background: #e94560; }
+    .bar-benign    { background: #f39c12; }
+    .bar-normal    { background: #2ecc71; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 500px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .tabs { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>🫁 Lung Cancer Risk Detector</h1>
+  <p class="subtitle">Symptom-based screening + CT scan image analysis</p>
+
+  <!-- ── Tab Buttons ── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('symptoms', this)">
+      📋 Symptom Check
+    </button>
+    <button class="tab-btn" onclick="switchTab('ctscan', this)">
+      🩻 CT Scan Analysis
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — Symptom Prediction (unchanged)
+  ══════════════════════════════════════════ -->
+  <div id="tab-symptoms" class="tab-content active">
+
+    <form action="/predict" method="POST">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="" disabled selected>Select gender</option>
+            <option value="1">Male</option>
+            <option value="0">Female</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="age">Age</label>
+          <input type="number" id="age" name="age" min="1" max="120"
+                 placeholder="e.g. 55" required />
+        </div>
+
+        <div class="form-group">
+          <label>Smoking</label>
+          <select name="smoking" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Yellow Fingers</label>
+          <select name="yellow_fingers" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Anxiety</label>
+          <select name="anxiety" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Peer Pressure</label>
+          <select name="peer_pressure" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Chronic Disease</label>
+          <select name="chronic_disease" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Fatigue</label>
+          <select name="fatigue" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Allergy</label>
+          <select name="allergy" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Wheezing</label>
+          <select name="wheezing" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Alcohol Consuming</label>
+          <select name="alcohol" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Coughing</label>
+          <select name="coughing" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Shortness of Breath</label>
+          <select name="shortness_breath" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Swallowing Difficulty</label>
+          <select name="swallowing_diff" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Chest Pain</label>
+          <select name="chest_pain" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">No</option>
+            <option value="2">Yes</option>
+          </select>
+        </div>
+
+      </div>
+
+      <button type="submit" class="btn">🔍 Predict Risk</button>
+    </form>
+
+    {% if result %}
+    <div class="result-card {{ risk }}">
+      <div class="result-label">{{ result }}</div>
+      <div class="result-prob">Probability of Lung Cancer: <strong>{{ probability }}%</strong></div>
+      <!-- <div class="result-note">This is a machine-learning estimate only. Please consult a doctor.</div> -->
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 2 — CT Scan Image Prediction (new)
+  ══════════════════════════════════════════ -->
+  <div id="tab-ctscan" class="tab-content">
+
+    <form action="/predict_image" method="POST" enctype="multipart/form-data">
+
+      <div class="upload-area" onclick="document.getElementById('ct_scan').click()">
+        <div class="upload-icon">🩻</div>
+        <div class="upload-text">Click to upload a CT scan image</div>
+        <div class="upload-subtext">Supports JPG, PNG — max 10MB</div>
+        <div class="file-name" id="file-name-display">No file chosen</div>
+        <input type="file" id="ct_scan" name="ct_scan"
+               accept="image/*" required
+               onchange="previewImage(event)" />
+      </div>
+
+      <img id="image-preview" src="" alt="CT Scan Preview" />
+
+      <button type="submit" class="btn">🔬 Analyse CT Scan</button>
+    </form>
+
+    {% if cnn_result %}
+    <div class="result-card {{ cnn_risk }}">
+      <div class="result-label">{{ cnn_result }}</div>
+      <div class="result-prob">Confidence: <strong>{{ cnn_confidence }}%</strong></div>
+
+      <!-- Probability bars -->
+      <div class="prob-bars">
+        <div class="prob-row">
+          <div class="prob-label">
+            <span>Malignant (Cancer)</span>
+            <span>{{ cnn_probs.Malignant }}%</span>
+          </div>
+          <div class="prob-bar-bg">
+            <div class="prob-bar-fill bar-malignant"
+                 style="width: {{ cnn_probs.Malignant }}%"></div>
+          </div>
+        </div>
+
+        <div class="prob-row">
+          <div class="prob-label">
+            <span>Benign (Non-cancerous)</span>
+            <span>{{ cnn_probs.Benign }}%</span>
+          </div>
+          <div class="prob-bar-bg">
+            <div class="prob-bar-fill bar-benign"
+                 style="width: {{ cnn_probs.Benign }}%"></div>
+          </div>
+        </div>
+
+        <div class="prob-row">
+          <div class="prob-label">
+            <span>Normal (Healthy)</span>
+            <span>{{ cnn_probs.Normal }}%</span>
+          </div>
+          <div class="prob-bar-bg">
+            <div class="prob-bar-fill bar-normal"
+                 style="width: {{ cnn_probs.Normal }}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- <div class="result-note">CT scan analysis by CNN (MobileNetV2). Consult a doctor for diagnosis.</div> -->
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<script>
+  // Switch tabs
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Preview uploaded image
+  function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+      document.getElementById('file-name-display').textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = document.getElementById('image-preview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // Auto open CT scan tab if cnn_result exists
+  {% if cnn_result %}
+    switchTab('ctscan', document.querySelectorAll('.tab-btn')[1]);
+  {% endif %}
+</script>
+
+</body>
+</html>
