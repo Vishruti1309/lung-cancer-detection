@@ -1,5 +1,7 @@
  🫁 Lung Cancer Detection System
  Dual-Mode System — Symptom Analysis + CT Scan Classification
+ 🔗 GitHub Repository
+https://github.com/Vishruti1309/lung-cancer-detection
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-lightgrey)
